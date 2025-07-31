@@ -147,7 +147,13 @@ main() {
         echo "You may need to restart your shell or run:"
         case "$SHELL_TYPE" in
             bash) echo "  source ~/.bashrc" ;;
-            zsh) echo "  source ~/.zshrc" ;;
+            zsh) 
+                echo "  source ~/.zshrc"
+                echo
+                echo "For zsh completion to work, ensure your ~/.zshrc contains:"
+                echo "  fpath=(~/.zsh/completions \$fpath)"
+                echo "  autoload -Uz compinit && compinit -u"
+                ;;
             fish) echo "  source ~/.config/fish/config.fish" ;;
         esac
     fi
