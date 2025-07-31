@@ -1,5 +1,5 @@
-#!/bin/sh
 # Installation script for dvc
+# Run this script with your shell: bash install.sh, zsh install.sh, etc.
 
 set -e
 
@@ -14,6 +14,7 @@ COMPLETION_DIR=""
 
 # Detect shell
 detect_shell() {
+    # Check shell-specific variables
     if [ -n "$BASH_VERSION" ]; then
         echo "bash"
     elif [ -n "$ZSH_VERSION" ]; then
@@ -21,14 +22,7 @@ detect_shell() {
     elif [ -n "$FISH_VERSION" ]; then
         echo "fish"
     else
-        # Check parent process
-        parent_shell=$(ps -p $PPID -o comm= 2>/dev/null || echo "sh")
-        case "$parent_shell" in
-            *bash*) echo "bash" ;;
-            *zsh*) echo "zsh" ;;
-            *fish*) echo "fish" ;;
-            *) echo "sh" ;;
-        esac
+        echo "unknown"
     fi
 }
 
@@ -130,6 +124,16 @@ main() {
                 echo "Installing fish completion to $COMPLETION_DIR..."
                 cp ./dvc-completion.fish "$COMPLETION_DIR/dvc.fish"
             fi
+            ;;
+        unknown)
+            echo
+            echo "WARNING: Could not detect shell type."
+            echo "Please run this script with your shell:"
+            echo "  bash install.sh"
+            echo "  zsh install.sh"
+            echo "  fish install.sh"
+            echo
+            echo "Skipping shell completion installation."
             ;;
     esac
 

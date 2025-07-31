@@ -11,8 +11,10 @@ A simple POSIX-compliant wrapper for DevContainer CLI operations.
 git clone https://github.com/y0za/dvc.git
 cd dvc
 
-# Run the installation script
-./install.sh
+# Run the installation script with your shell
+bash install.sh  # for bash users
+zsh install.sh   # for zsh users
+fish install.sh  # for fish users
 ```
 
 This will:
