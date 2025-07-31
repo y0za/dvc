@@ -1,0 +1,132 @@
+#!/bin/sh
+# devcontainer wrapper - POSIX compliant version
+
+WORKSPACE_DIR="${WORKSPACE_DIR:-.}"
+
+# Get container ID
+get_container_id() {
+    docker ps -aq -f "label=devcontainer.local_folder=$(pwd)" 2>/dev/null | head -1
+}
+
+# Get script name for recursive calls
+SCRIPT_NAME="$0"
+
+case "${1:-}" in
+    up|start)
+        container_id=$(get_container_id)
+        if [ -n "$container_id" ]; then
+            echo "Starting existing container..."
+            docker start "$container_id"
+        else
+            echo "Creating new container..."
+            devcontainer up --workspace-folder "$WORKSPACE_DIR"
+        fi
+        ;;
+    stop)
+        container_id=$(get_container_id)
+        if [ -n "$container_id" ]; then
+            echo "Stopping container..."
+            docker stop "$container_id"
+        else
+            echo "No container found"
+        fi
+        ;;
+    down|remove)
+        container_id=$(get_container_id)
+        if [ -n "$container_id" ]; then
+            echo "Removing container..."
+            docker rm -f "$container_id"
+        else
+            echo "No container found"
+        fi
+        ;;
+    restart)
+        "$SCRIPT_NAME" stop
+        sleep 1
+        "$SCRIPT_NAME" start
+        ;;
+    recreate)
+        "$SCRIPT_NAME" down
+        "$SCRIPT_NAME" up
+        ;;
+    exec|run)
+        shift
+        devcontainer exec --workspace-folder "$WORKSPACE_DIR" "$@"
+        ;;
+    shell|sh)
+        devcontainer exec --workspace-folder "$WORKSPACE_DIR" "${SHELL:-sh}"
+        ;;
+    rebuild)
+        "$SCRIPT_NAME" down
+        docker rmi $(docker images -q -f "label=devcontainer.local_folder=$(pwd)") 2>/dev/null || true
+        devcontainer up --workspace-folder "$WORKSPACE_DIR"
+        ;;
+    logs)
+        container_id=$(docker ps -q -f "label=devcontainer.local_folder=$(pwd)")
+        if [ -n "$container_id" ]; then
+            docker logs "$container_id"
+        else
+            echo "No running container found"
+        fi
+        ;;
+    status|ps)
+        docker ps -a -f "label=devcontainer.local_folder=$(pwd)"
+        ;;
+    clean)
+        "$SCRIPT_NAME" down
+        docker volume prune -f
+        docker image prune -f
+        ;;
+    claude)
+        devcontainer exec --workspace-folder "$WORKSPACE_DIR" claude-code
+        ;;
+    claude-resume)
+        devcontainer exec --workspace-folder "$WORKSPACE_DIR" claude-code -r
+        ;;
+    version|--version|-v)
+        echo "dvc (devcontainer wrapper) version 0.1.0"
+        ;;
+    help|--help|-h|*)
+        cat <<EOF
+dvc - devcontainer wrapper
+
+Usage: dvc [COMMAND] [ARGS...]
+
+Container lifecycle:
+  up, start      Start devcontainer (create if needed)
+  stop           Stop container (keep it for later)
+  down, remove   Stop and remove container
+  restart        Stop and start container (without removing)
+  recreate       Remove and create new container
+  rebuild        Rebuild from scratch (remove image too)
+
+Operations:
+  exec, run      Execute command in container
+  shell, sh      Open shell in container
+  logs           Show container logs
+  status, ps     Show container status
+  clean          Clean up volumes and images
+
+Claude integration:
+  claude         Start Claude Code
+  claude-resume  Resume Claude Code session
+
+Other:
+  version        Show version information
+  help           Show this help message
+
+Examples:
+  dvc up                    # Start devcontainer
+  dvc exec npm test         # Run tests
+  dvc shell                 # Open shell
+  dvc claude                # Start Claude Code
+
+Environment variables:
+  WORKSPACE_DIR             Override workspace directory (default: current directory)
+  SHELL                     Shell to use in container (default: sh)
+
+Project: https://github.com/y0za/dvc
+EOF
+        [ -z "$1" ] && exit 1
+        ;;
+esac
